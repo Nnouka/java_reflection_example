@@ -18,7 +18,7 @@ For this we need a dependency, mysql connector j.
 
 We will be using maven to help resolve this dependency into our class path.
 
-The maven repository in this case is add like this:
+We added the maven repository in this case like this:
 ```xml
 <dependencies>
         <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
