@@ -39,15 +39,29 @@ We establish the database connection in the connections.DatabaseConnection class
 We have created two POJOs
 
 1. entities.Pet
+```java
+public class Pet {
+    private String name;
+    private int age;
+    private Date dateOfBirth;
+}
+```
 2. entities.PetClinicShowCase
+```java
+public class PetClinicShowCase {
+    private Long id;
+    private String name;
+    private Date schedule;
+}
+```
 
 ### Create a reflective class to get information about class name, field names and types
 
-This is done in reflections.ReflectEntity class.
+This is done in "reflections.ReflectEntity" class.
 
-Note. The key to reflecting the class and its properties is reflections.ReflectEntity.tClass property in the ReflectEntity class
+Note. The key to reflecting the class and its properties is "reflections.ReflectEntity.tClass" property in the ReflectEntity class
 
-We pass the Class<?> to reflect here
+We pass the Class to reflect here
 ```java
 public void of(Class<?> tClass) {
         this.tClass = tClass;
@@ -163,4 +177,8 @@ Done
 
 Process finished with exit code 0
 ```
+
+Hope this gives you one reason to dive deep into advanced java and learn more. 
+
+Next We will be adding annotations to specify column names from the POJOs
 
