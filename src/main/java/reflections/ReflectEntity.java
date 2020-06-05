@@ -36,9 +36,11 @@ public class ReflectEntity {
     public Map<String, String> getFieldNames() {
         Field[] fields = tClass.getFields();
         Field[] declaredFields = tClass.getDeclaredFields();
+        // we use set here to ensure that in case were we have public fields in the superclass and subclass
+        // we will eliminate the duplicate fields gotten from fields and declaredFields
         Set<Field> fieldSet = new HashSet<>(Arrays.asList(fields));
         fieldSet.addAll(Arrays.asList(declaredFields));
-        Map<String, String> fieldNames = new HashMap<String, String>();
+        Map<String, String> fieldNames = new HashMap<>();
         for (Field f: fieldSet) {
             String fName = Str.snakeCaseOfCamelCase(f.getName());
             StringBuilder typeName = new StringBuilder(SQLType.of(f.getType().getSimpleName()).getSqlType());
