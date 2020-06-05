@@ -1,12 +1,16 @@
 package reflections;
 
+import annotations.PrimaryKey;
+import annotations.SQLColumn;
+import annotations.SQLTable;
 import enums.SQLTypes;
 import utils.SQLType;
 import utils.Str;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class ReflectEntity {
     private Class<?> tClass;
@@ -15,17 +19,49 @@ public class ReflectEntity {
         this.tClass = tClass;
     }
     public String getEntityName() {
-        return tClass.getSimpleName();
+        String name = tClass.getSimpleName();
+        Annotation[] annotations = tClass.getAnnotations();
+        for (Annotation an: annotations) {
+            // support SQLTable
+            if (an instanceof SQLTable) {
+                SQLTable sqlTable = (SQLTable) an;
+                String tName = sqlTable.name();
+                if (!tName.trim().isEmpty()) name = sqlTable.name();
+                // remember to take off this break statement if you add another annotation support
+                break;
+            }
+        }
+        return name;
     }
     public Map<String, String> getFieldNames() {
         Field[] fields = tClass.getFields();
         Field[] declaredFields = tClass.getDeclaredFields();
+        Set<Field> fieldSet = new HashSet<>(Arrays.asList(fields));
+        fieldSet.addAll(Arrays.asList(declaredFields));
         Map<String, String> fieldNames = new HashMap<String, String>();
-        for (Field f: fields) {
-            fieldNames.put(f.getName(), f.getType().getSimpleName());
-        }
-        for (Field f: declaredFields) {
-            if (!fieldNames.containsKey(f.getName())) fieldNames.put(f.getName(), f.getType().getSimpleName());
+        for (Field f: fieldSet) {
+            String fName = Str.snakeCaseOfCamelCase(f.getName());
+            StringBuilder typeName = new StringBuilder(SQLType.of(f.getType().getSimpleName()).getSqlType());
+            Annotation[] annotations = f.getAnnotations();
+            for (Annotation an: annotations) {
+                // support SQLColumn
+                if (an instanceof SQLColumn) {
+                    SQLColumn sqlColumn = (SQLColumn) an;
+                    String cName = sqlColumn.name();
+                    String nullable = sqlColumn.nullable() ? " NULL " : " NOT NULL ";
+                    typeName.append(nullable);
+                    String defaultValue = sqlColumn.defaultValue();
+                    if (!cName.trim().isEmpty()) fName = sqlColumn.name();
+                    if (!defaultValue.equals("none")) typeName.append(" DEFAULT ").append(defaultValue);
+
+                } else if (an instanceof PrimaryKey) {
+                    PrimaryKey key = (PrimaryKey) an;
+                    typeName.append(key.autoIncrement() ? " AUTO_INCREMENT " : "").append("PRIMARY KEY ");
+                    // remember to take off this break statement if you add another annotation support
+                    break;
+                }
+            }
+            fieldNames.put(fName, typeName.toString());
         }
         return fieldNames;
     }
@@ -35,8 +71,8 @@ public class ReflectEntity {
                 .append("(");
         Map<String, String> fieldNames = getFieldNames();
         for (String name: fieldNames.keySet()) {
-            sb.append(Str.snakeCaseOfCamelCase(name)).append(" ")
-                    .append(SQLType.of(fieldNames.get(name)).getSqlType()).append(", ");
+            sb.append(name).append(" ")
+                    .append(fieldNames.get(name)).append(", ");
         }
         if (fieldNames.isEmpty()) {
             sb.append("id INTEGER AUTO_INCREMENT PRIMARY KEY");
