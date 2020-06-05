@@ -37,6 +37,8 @@ public class ReflectEntity {
             return "VARCHAR(255)";
         } else if ("float".equals(type) || "double".equals(type) || "Double".equals(type)) {
             return "DECIMAL";
+        } else if ("Date".equals(type) || "DateTime".equals(type) || "LocalDateTime".equals(type) || "LocalDate".equals(type)) {
+            return "TIMESTAMP";
         }
         throw new RuntimeException("Cannot create SQL mapping for type: " + type);
     }
@@ -46,7 +48,8 @@ public class ReflectEntity {
                 .append("(");
         Map<String, String> fieldNames = getFieldNames();
         for (String name: fieldNames.keySet()) {
-            sb.append(name).append(" ").append(getSQLTypeFromPrimitive(fieldNames.get(name))).append(", ");
+            sb.append(Str.snakeCaseOfCamelCase(name)).append(" ")
+                    .append(getSQLTypeFromPrimitive(fieldNames.get(name))).append(", ");
         }
         if (fieldNames.isEmpty()) {
             sb.append("id INTEGER AUTO_INCREMENT PRIMARY KEY");
