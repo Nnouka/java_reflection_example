@@ -2,7 +2,7 @@
 
 ## What is reflection
 
-In simple terms, it is getting information about a class and runtime
+In simple terms, it is getting information about a class at runtime
 
 ## What we will be doing
 
