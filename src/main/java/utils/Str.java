@@ -15,11 +15,6 @@ public class Str {
     }
     public static String snakeCaseOfCamelCase(String s) {
         String[] list = splitCamelCaseString(s).toArray(new String[0]);
-        StringBuilder sb = new StringBuilder();
-        for (String l: list) {
-            sb.append(l.toLowerCase()).append("_");
-        }
-        if (sb.lastIndexOf("_") > -1) sb.deleteCharAt(sb.lastIndexOf("_"));
-        return sb.toString();
+        return String.join("_", list);
     }
 }

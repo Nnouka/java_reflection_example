@@ -32,7 +32,55 @@ We added the maven repository in this case like this:
 ```
 This gives us access to the necessary jdbc drivers for mysql connection.
 
-We establish the database connection in the connections.DatabaseConnection class. Check it out to see its implementation.
+We establish the database connection in the connections.DatabaseConnection class.
+```java
+public class DatabaseConnection {
+    private static String url;
+    private static DatabaseConnection connection;
+
+    private DatabaseConnection() {
+        this("jdbc:mysql://localhost:3306/reflective_jdbc?useSSL=false&serverTimezone=UTC");
+    }
+
+    private DatabaseConnection(final String url) {
+        if (DatabaseConnection.url == null) DatabaseConnection.url = url;
+    }
+
+    public static DatabaseConnection getInstance() {
+        return connection == null ? new DatabaseConnection() : connection;
+    }
+    public static DatabaseConnection getInstance(String url) {
+        return connection == null ? new DatabaseConnection(url) : connection;
+    }
+
+    public Connection getConnection() {
+        try {
+            return DriverManager.getConnection(url, "root", "");
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+    public Statement getStatement() {
+        try {
+            return getConnection().createStatement();
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+    public void executeUpdate(String sqlStatement) {
+        try {
+            System.out.println("Executing SQL Statement");
+            System.out.println(sqlStatement);
+
+            getStatement().executeUpdate(sqlStatement);
+
+            System.out.println("Done");
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+}
+```
 
 ### Create sample POJOs to test our reflective class
 
@@ -178,7 +226,7 @@ Done
 Process finished with exit code 0
 ```
 
-Hope this gives you one reason to dive deep into advanced java and learn more. 
+Hope this gives you one reason to dive deep into advanced java and learn more about reflections.
 
 Next We will be adding annotations to specify column names from the POJOs
 

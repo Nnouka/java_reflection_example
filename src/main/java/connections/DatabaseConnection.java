@@ -15,6 +15,7 @@ public class DatabaseConnection {
 
     private DatabaseConnection(final String url) {
         if (DatabaseConnection.url == null) DatabaseConnection.url = url;
+        else throw new RuntimeException("Construction is not allowed here, please use the getInstance() method instead!");
     }
 
     public static DatabaseConnection getInstance() {
