@@ -45,7 +45,7 @@ We have created two POJOs
 
 This is done in reflections.ReflectEntity class.
 
-Note. The key to reflecting the class and its properties is reflections.ReflectEntity.tClass property in the RelectEntiry class
+Note. The key to reflecting the class and its properties is reflections.ReflectEntity.tClass property in the ReflectEntity class
 
 We pass the Class<?> to reflect here
 ```java
