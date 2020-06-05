@@ -1,7 +1,10 @@
 package utils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * authored at
@@ -14,7 +17,12 @@ public class Str {
        );
     }
     public static String snakeCaseOfCamelCase(String s) {
-        String[] list = splitCamelCaseString(s).toArray(new String[0]);
+        List<String> result = new ArrayList<>();
+        for (String s1 : splitCamelCaseString(s)) {
+            String toLowerCase = s1.toLowerCase();
+            result.add(toLowerCase);
+        }
+        String[] list = result.toArray(new String[0]);
         return String.join("_", list);
     }
 }

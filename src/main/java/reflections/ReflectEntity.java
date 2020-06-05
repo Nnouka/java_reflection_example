@@ -1,5 +1,7 @@
 package reflections;
 
+import enums.SQLTypes;
+import utils.SQLType;
 import utils.Str;
 
 import java.lang.reflect.Field;
@@ -27,21 +29,6 @@ public class ReflectEntity {
         }
         return fieldNames;
     }
-
-    private String getSQLTypeFromPrimitive(String type) {
-        if ("int".equals(type) || "long".equals(type) || "Long".equals(type) || "Integer".equals(type) || "short".equals(type)) {
-            return "INTEGER";
-        } else if ("boolean".equals(type) || "byte".equals(type)) {
-            return "BOOLEAN";
-        } else if ("String".equals(type)) {
-            return "VARCHAR(255)";
-        } else if ("float".equals(type) || "double".equals(type) || "Double".equals(type)) {
-            return "DECIMAL";
-        } else if ("Date".equals(type) || "DateTime".equals(type) || "LocalDateTime".equals(type) || "LocalDate".equals(type)) {
-            return "TIMESTAMP";
-        }
-        throw new RuntimeException("Cannot create SQL mapping for type: " + type);
-    }
     public String getDDLString() {
         StringBuilder sb = new StringBuilder("CREATE TABLE IF NOT EXISTS ");
         sb.append(Str.snakeCaseOfCamelCase(getEntityName()))
@@ -49,7 +36,7 @@ public class ReflectEntity {
         Map<String, String> fieldNames = getFieldNames();
         for (String name: fieldNames.keySet()) {
             sb.append(Str.snakeCaseOfCamelCase(name)).append(" ")
-                    .append(getSQLTypeFromPrimitive(fieldNames.get(name))).append(", ");
+                    .append(SQLType.of(fieldNames.get(name)).getSqlType()).append(", ");
         }
         if (fieldNames.isEmpty()) {
             sb.append("id INTEGER AUTO_INCREMENT PRIMARY KEY");
