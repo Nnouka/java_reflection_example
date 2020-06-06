@@ -182,3 +182,5 @@ Hope this gives you one reason to dive deep into advanced java and learn more.
 
 Next We will be adding annotations to specify column names from the POJOs
 
+This is now available in the [annotated branch](https://github.com/Nnouka/java_reflection_example/tree/annotated)
+
