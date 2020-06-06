@@ -1,232 +1,198 @@
-# Introducing reflection in java by example
+# Introducing reflection and annotations in java by example
 
-## What is reflection
+This is a second story in the series, checkout the [master branch](https://github.com/Nnouka/java_reflection_example/tree/master) for a primer on reflections
 
-In simple terms, it is getting information about a class at runtime
+## What is a java annotation
+
+In real life, annotating a book means marking some sections and commenting or explaining them.
+
+Keeping things short, annotations in java are comments or explanations NOT FOR THE PROGRAMMER, but for the program itself.
 
 ## What we will be doing
 
-1. Create a database connection
-2. Create sample POJOs to test our reflective class
-3. Create a reflective class to get information about class name, field names and types
-4. Use our reflective class to generate sql statements
-5. Execute the generated sql statements on our database
+1. Create three (03) annotations
+2. Add the annotations to our POJOs
+3. Use our reflective class to get information from our annotations and make our sql better
 
-### Create a database connection
+If you haven't checkout the master branch for the primer on reflections now is the time to do so, because we will be building on it
 
-For this we need a dependency, mysql connector j.
+### Create three (03) annotations
 
-We will be using maven to help resolve this dependency into our class path.
+We have created 3 annotations
 
-We added the maven repository in this case like this:
-```xml
-<dependencies>
-        <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.20</version>
-        </dependency>
+1. PrimaryKey
 
-</dependencies>
-```
-This gives us access to the necessary jdbc drivers for mysql connection.
-
-We establish the database connection in the connections.DatabaseConnection class.
 ```java
-public class DatabaseConnection {
-    private static String url;
-    private static DatabaseConnection connection;
-
-    private DatabaseConnection() {
-        this("jdbc:mysql://localhost:3306/reflective_jdbc?useSSL=false&serverTimezone=UTC");
-    }
-
-    private DatabaseConnection(final String url) {
-        if (DatabaseConnection.url == null) DatabaseConnection.url = url;
-    }
-
-    public static DatabaseConnection getInstance() {
-        return connection == null ? new DatabaseConnection() : connection;
-    }
-    public static DatabaseConnection getInstance(String url) {
-        return connection == null ? new DatabaseConnection(url) : connection;
-    }
-
-    public Connection getConnection() {
-        try {
-            return DriverManager.getConnection(url, "root", "");
-        } catch (SQLException e) {
-            throw new RuntimeException(e.getMessage());
-        }
-    }
-    public Statement getStatement() {
-        try {
-            return getConnection().createStatement();
-        } catch (SQLException e) {
-            throw new RuntimeException(e.getMessage());
-        }
-    }
-    public void executeUpdate(String sqlStatement) {
-        try {
-            System.out.println("Executing SQL Statement");
-            System.out.println(sqlStatement);
-
-            getStatement().executeUpdate(sqlStatement);
-
-            System.out.println("Done");
-        } catch (SQLException e) {
-            throw new RuntimeException(e.getMessage());
-        }
-    }
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface PrimaryKey {
+    boolean autoIncrement() default true;
 }
 ```
 
-### Create sample POJOs to test our reflective class
+What do you think this will be used for?
 
-We have created two POJOs
+Of course, it is used to explain to our program that a field will be the primary key
+
+Furthermore, we can also indicate if this key should be autoIncrement or not, but it is autoIncrement by default in this case
+
+Note.
+
+We have used two in-built java annotations from the java.lang.annotations library.
+
+@Target indicates to java compiler where this annotation should be used, 
+ in this case it will be used to annotate a field, nothing more
+
+if you intend to use it otherwise, you would do something like
+ @Target({ElementType.FIELD, ElementType.TYPE, ...}) 
+
+in this case, the three dots ... mean you can add more valid ElementTypes (your code will not compile with the 3 dots)
+
+@Retention indicates your intention of when to use this annotation,
+ it could be only for source code, or to keep it for the compiled class, or to keep it for the runtime
+
+in this case we intend to keep it around even at runtime
+
+2. SQLColumn
+
+```java
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface SQLColumn {
+    String name();
+    String defaultValue() default "none";
+    boolean nullable() default true;
+}
+```
+
+This will be used to give a custom name to our column,
+ very useful if we want a column name different from the field name
+
+We can also set a default value for the column, or indicate if our column will contain null values or not
+
+3. SQLTable
+
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface SQLTable {
+    String name();
+}
+```
+
+Hope you can quickly tell that this will be used in case we want a custom name for our table different from the Class name
+
+### Add the annotations to our POJOs
+
+We have added these annotations to our POJOs they look decorated now
 
 1. entities.Pet
 ```java
+@SQLTable(name = "pets_catalogue")
 public class Pet {
+    @PrimaryKey
+    private long id;
+    @SQLColumn(name = "full_name")
     private String name;
     private int age;
+    @SQLColumn(name = "pet_dob", nullable = false)
     private Date dateOfBirth;
 }
 ```
 2. entities.PetClinicShowCase
 ```java
+@SQLTable(name = "pet_clinical_show")
 public class PetClinicShowCase {
+    @PrimaryKey
     private Long id;
     private String name;
     private Date schedule;
 }
 ```
 
-### Create a reflective class to get information about class name, field names and types
+### Use our reflective class to get information from our annotations and make our sql better
 
 This is done in "reflections.ReflectEntity" class.
 
-Note. The key to reflecting the class and its properties is "reflections.ReflectEntity.tClass" property in the ReflectEntity class
-
-We pass the Class to reflect here
-```java
-public void of(Class<?> tClass) {
-        this.tClass = tClass;
-    }
-```
-We reflect on the class here
+For our table name, we are interested in the @SQLTable annotation
 
 ```java
 public String getEntityName() {
-        return tClass.getSimpleName();
+        String name = tClass.getSimpleName();
+        Annotation[] annotations = tClass.getAnnotations();
+        for (Annotation an: annotations) {
+            // support SQLTable
+            if (an instanceof SQLTable) {
+                SQLTable sqlTable = (SQLTable) an;
+                String tName = sqlTable.name();
+                if (!tName.trim().isEmpty()) name = sqlTable.name();
+                // remember to take off this break statement if you add another annotation support
+                break;
+            }
+        }
+        return name;
     }
 ```
-We reflect on the fields here
+Notice how we reflect on the class to get all the annotations and specifically we pick out the SQLTable annotation
+
+If its "name" value is not the empty string, we use it as the name of our table. Straight forward, isn't it?
+
+For our columns, we are interested in @PrimaryKey and @SQLColumn
 
 ```java
 public Map<String, String> getFieldNames() {
         Field[] fields = tClass.getFields();
         Field[] declaredFields = tClass.getDeclaredFields();
-        Map<String, String> fieldNames = new HashMap<String, String>();
-        for (Field f: fields) {
-            fieldNames.put(f.getName(), f.getType().getSimpleName());
-        }
-        for (Field f: declaredFields) {
-            if (!fieldNames.containsKey(f.getName())) fieldNames.put(f.getName(), f.getType().getSimpleName());
+        // we use set here to ensure that in case were we have public fields in the superclass and subclass
+        // we will eliminate the duplicate fields gotten from fields and declaredFields
+        Set<Field> fieldSet = new HashSet<>(Arrays.asList(fields));
+        fieldSet.addAll(Arrays.asList(declaredFields));
+        Map<String, String> fieldNames = new HashMap<>();
+        for (Field f: fieldSet) {
+            String fName = Str.snakeCaseOfCamelCase(f.getName());
+            StringBuilder typeName = new StringBuilder(SQLType.of(f.getType().getSimpleName()).getSqlType());
+            Annotation[] annotations = f.getAnnotations();
+            for (Annotation an: annotations) {
+                // support SQLColumn
+                if (an instanceof SQLColumn) {
+                    SQLColumn sqlColumn = (SQLColumn) an;
+                    String cName = sqlColumn.name();
+                    String nullable = sqlColumn.nullable() ? " NULL " : " NOT NULL ";
+                    typeName.append(nullable);
+                    String defaultValue = sqlColumn.defaultValue();
+                    if (!cName.trim().isEmpty()) fName = sqlColumn.name();
+                    if (!defaultValue.equals("none")) typeName.append(" DEFAULT ").append(defaultValue);
+
+                } else if (an instanceof PrimaryKey) { // support PrimaryKey
+                    PrimaryKey key = (PrimaryKey) an;
+                    typeName.append(key.autoIncrement() ? " AUTO_INCREMENT " : "").append("PRIMARY KEY ");
+                }
+            }
+            fieldNames.put(fName, typeName.toString());
         }
         return fieldNames;
-    }
-```
-### Use our reflective class to generate sql statements
-
-We do this with the help of two methods
-```java
-private String getSQLTypeFromPrimitive(String type) {
-        if ("int".equals(type) || "long".equals(type) || "Long".equals(type) || "Integer".equals(type) || "short".equals(type)) {
-            return "INTEGER";
-        } else if ("boolean".equals(type) || "byte".equals(type)) {
-            return "BOOLEAN";
-        } else if ("String".equals(type)) {
-            return "VARCHAR(255)";
-        } else if ("float".equals(type) || "double".equals(type) || "Double".equals(type)) {
-            return "DECIMAL";
-        } else if ("Date".equals(type) || "DateTime".equals(type) || "LocalDateTime".equals(type) || "LocalDate".equals(type)) {
-            return "TIMESTAMP";
-        }
-        throw new RuntimeException("Cannot create SQL mapping for type: " + type);
-    }
-    public String getDDLString() {
-        StringBuilder sb = new StringBuilder("CREATE TABLE IF NOT EXISTS ");
-        sb.append(Str.snakeCaseOfCamelCase(getEntityName()))
-                .append("(");
-        Map<String, String> fieldNames = getFieldNames();
-        for (String name: fieldNames.keySet()) {
-            sb.append(name).append(" ").append(getSQLTypeFromPrimitive(fieldNames.get(name))).append(", ");
-        }
-        if (fieldNames.isEmpty()) {
-            sb.append("id INTEGER AUTO_INCREMENT PRIMARY KEY");
-        }
-        if (sb.lastIndexOf(",") > -1) sb.deleteCharAt(sb.lastIndexOf(","));
-        sb.append(")");
-        return sb.toString();
-    }
-```
-
-Note that this is a simple example to show the power of reflection in java and one of its usages, so don't expect this code to work like
- code from hibernate.org
-
-### Execute the generated sql statements on our database
-
-We execute the sql statements in our Main class
-```java
-public static void main(String[] args) {
-        DatabaseConnection databaseConnection = DatabaseConnection.getInstance();
-        ReflectEntity reflectEntity = new ReflectEntity(Pet.class);
-        databaseConnection.executeUpdate(reflectEntity.getDDLString());
-        reflectEntity.of(PetClinicShowCase.class);
-        databaseConnection.executeUpdate(reflectEntity.getDDLString());
-    }
-```
-Note that the method call databaseConnection.executeUpdate(reflectEntity.getDDLString()); is built upon the normal 
-Statment.executeUpdate(sqlStatement) of the java.sql package. This is how we used it:
-
-```java
-public Statement getStatement() {
-        try {
-            return getConnection().createStatement();
-        } catch (SQLException e) {
-            throw new RuntimeException(e.getMessage());
-        }
-    }
-    public void executeUpdate(String sqlStatement) {
-        try {
-            System.out.println("Executing SQL Statement");
-            System.out.println(sqlStatement);
-
-            getStatement().executeUpdate(sqlStatement);
-
-            System.out.println("Done");
-        } catch (SQLException e) {
-            throw new RuntimeException(e.getMessage());
-        }
     }
 ```
 
 # Results
 When I ran the code I printed out the resulting sql statement to the console
-```
+```gherkin
 Executing SQL Statement
-CREATE TABLE IF NOT EXISTS pet(name VARCHAR(255), date_of_birth TIMESTAMP, age INTEGER )
+CREATE TABLE IF NOT EXISTS pets_catalogue(full_name VARCHAR(255) NULL , prt_id BIGINT AUTO_INCREMENT PRIMARY KEY  NOT NULL , pet_dob DATE NOT NULL , age INTEGER )
 Done
 Executing SQL Statement
-CREATE TABLE IF NOT EXISTS pet_clinic_show_case(schedule TIMESTAMP, name VARCHAR(255), id INTEGER )
+CREATE TABLE IF NOT EXISTS pet_clinical_show(schedule DATE, name VARCHAR(255), id BIGINT AUTO_INCREMENT PRIMARY KEY  )
 Done
 
 Process finished with exit code 0
 ```
 
-Hope this gives you one reason to dive deep into advanced java and learn more about reflections.
+Hope this gives you one reason to dive deep into advanced java and learn more about reflections and annotations
 
-Next We will be adding annotations to specify column names from the POJOs
+Our next series is on Files I/O
+
+To read an entire file and allow manipulations, as one long string,
+ as a list of lines or as a list of words
+
+See you there!!!
 

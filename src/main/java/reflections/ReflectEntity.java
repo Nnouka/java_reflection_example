@@ -56,11 +56,9 @@ public class ReflectEntity {
                     if (!cName.trim().isEmpty()) fName = sqlColumn.name();
                     if (!defaultValue.equals("none")) typeName.append(" DEFAULT ").append(defaultValue);
 
-                } else if (an instanceof PrimaryKey) {
+                } else if (an instanceof PrimaryKey) { // support PrimaryKey
                     PrimaryKey key = (PrimaryKey) an;
                     typeName.append(key.autoIncrement() ? " AUTO_INCREMENT " : "").append("PRIMARY KEY ");
-                    // remember to take off this break statement if you add another annotation support
-                    break;
                 }
             }
             fieldNames.put(fName, typeName.toString());
