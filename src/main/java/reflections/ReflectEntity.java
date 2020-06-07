@@ -54,8 +54,10 @@ public class ReflectEntity {
                     typeName.append(nullable);
                     String defaultValue = sqlColumn.defaultValue();
                     if (!cName.trim().isEmpty()) fName = sqlColumn.name();
-                    if (!defaultValue.equals("none")) typeName.append(" DEFAULT ").append(defaultValue);
-
+                    if (!defaultValue.equals("none")) typeName.append(" DEFAULT ")
+                            .append("'")
+                            .append(defaultValue)
+                            .append("'");
                 } else if (an instanceof PrimaryKey) { // support PrimaryKey
                     PrimaryKey key = (PrimaryKey) an;
                     typeName.append(key.autoIncrement() ? " AUTO_INCREMENT " : "").append("PRIMARY KEY ");

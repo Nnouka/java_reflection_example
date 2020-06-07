@@ -11,7 +11,7 @@ public class Pet {
     @PrimaryKey
     @SQLColumn(name = "pet_id", nullable = false)
     private long id;
-    @SQLColumn(name = "full_name")
+    @SQLColumn(name = "full_name", defaultValue = "James")
     private String name;
     private int age;
     @SQLColumn(name = "pet_dob", nullable = false)
